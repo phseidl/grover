@@ -23,6 +23,44 @@ def add_common_args(parser: ArgumentParser):
     parser.add_argument('--batch_size', type=int, default=32,
                         help='Batch size')
 
+def add_model_args(parser: ArgumentParser):
+    # Model arguments
+    parser.add_argument('--ensemble_size', type=int, default=1,
+                        help='Number of models for ensemble prediction.')
+    parser.add_argument('--dropout', type=float, default=0.0,
+                        help='Dropout probability')
+    parser.add_argument('--activation', type=str, default='ReLU',
+                        choices=['ReLU', 'LeakyReLU', 'PReLU', 'tanh', 'SELU', 'ELU'],
+                        help='Activation function')
+    parser.add_argument('--ffn_hidden_size', type=int, default=None,
+                        help='Hidden dim for higher-capacity FFN (defaults to hidden_size)')
+    parser.add_argument('--ffn_num_layers', type=int, default=2,
+                        help='Number of layers in FFN after MPN encoding')
+    parser.add_argument('--weight_decay', type=float, default=0.0, help='weight_decay')
+    parser.add_argument('--select_by_loss', action='store_true', default=False,
+                        help='Use validation loss as refence standard to select best model to predict')
+
+    parser.add_argument("--embedding_output_type", default="atom", choices=["atom", "bond", "both"],
+                        help="This the model parameters for pretrain model. The current finetuning task only use the "
+                             "embeddings from atom branch. ")
+
+    # Self-attentive readout.
+    parser.add_argument('--self_attention', action='store_true', default=False, help='Use self attention layer. '
+                                                                                     'Otherwise use mean aggregation '
+                                                                                     'layer.')
+    parser.add_argument('--attn_hidden', type=int, default=4, nargs='?', help='Self attention layer '
+                                                                              'hidden layer size.')
+    parser.add_argument('--attn_out', type=int, default=128, nargs='?', help='Self attention layer '
+                                                                             'output feature size.')
+
+    parser.add_argument('--dist_coff', type=float, default=0.1, help='The dist coefficient for output of two branches.')
+
+
+    parser.add_argument('--bond_drop_rate', type=float, default=0, help='Drop out bond in molecular.')
+    parser.add_argument('--distinct_init', action='store_true', default=False,
+                        help='Using distinct weight init for model ensemble')
+    parser.add_argument('--fine_tune_coff', type=float, default=1,
+                        help='Enable distinct fine tune learning rate for fc and other layer')
 
 def add_predict_args(parser: ArgumentParser):
     """
@@ -51,6 +89,7 @@ def add_predict_args(parser: ArgumentParser):
 
 
 def add_fingerprint_args(parser):
+    add_model_args(parser)
     add_common_args(parser)
     # parameters for fingerprints generation
     parser.add_argument('--data_path', type=str, help='Input csv file which contains SMILES')
@@ -177,44 +216,7 @@ def add_finetune_args(parser: ArgumentParser):
                         help='Turn off scaling of features')
     parser.add_argument('--early_stop_epoch', type=int, default=1000, help='If val loss did not drop in '
                                                                            'this epochs, stop running')
-
-    # Model arguments
-    parser.add_argument('--ensemble_size', type=int, default=1,
-                        help='Number of models for ensemble prediction.')
-    parser.add_argument('--dropout', type=float, default=0.0,
-                        help='Dropout probability')
-    parser.add_argument('--activation', type=str, default='ReLU',
-                        choices=['ReLU', 'LeakyReLU', 'PReLU', 'tanh', 'SELU', 'ELU'],
-                        help='Activation function')
-    parser.add_argument('--ffn_hidden_size', type=int, default=None,
-                        help='Hidden dim for higher-capacity FFN (defaults to hidden_size)')
-    parser.add_argument('--ffn_num_layers', type=int, default=2,
-                        help='Number of layers in FFN after MPN encoding')
-    parser.add_argument('--weight_decay', type=float, default=0.0, help='weight_decay')
-    parser.add_argument('--select_by_loss', action='store_true', default=False,
-                        help='Use validation loss as refence standard to select best model to predict')
-
-    parser.add_argument("--embedding_output_type", default="atom", choices=["atom", "bond", "both"],
-                        help="This the model parameters for pretrain model. The current finetuning task only use the "
-                             "embeddings from atom branch. ")
-
-    # Self-attentive readout.
-    parser.add_argument('--self_attention', action='store_true', default=False, help='Use self attention layer. '
-                                                                                     'Otherwise use mean aggregation '
-                                                                                     'layer.')
-    parser.add_argument('--attn_hidden', type=int, default=4, nargs='?', help='Self attention layer '
-                                                                              'hidden layer size.')
-    parser.add_argument('--attn_out', type=int, default=128, nargs='?', help='Self attention layer '
-                                                                             'output feature size.')
-
-    parser.add_argument('--dist_coff', type=float, default=0.1, help='The dist coefficient for output of two branches.')
-
-
-    parser.add_argument('--bond_drop_rate', type=float, default=0, help='Drop out bond in molecular.')
-    parser.add_argument('--distinct_init', action='store_true', default=False,
-                        help='Using distinct weight init for model ensemble')
-    parser.add_argument('--fine_tune_coff', type=float, default=1,
-                        help='Enable distinct fine tune learning rate for fc and other layer')
+    add_model_args(parser)
 
     # For multi-gpu finetune.
     parser.add_argument('--enbl_multi_gpu', dest='enbl_multi_gpu',
